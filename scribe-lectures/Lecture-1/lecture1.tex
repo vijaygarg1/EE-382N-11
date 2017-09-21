@@ -10,11 +10,6 @@
 % This template is based on the template for Prof. Sinclair's CS 270.
 
 \documentclass[twoside]{article}
-\usepackage{graphics}
-\usepackage{amssymb}
-\usepackage{pgfplots}
-\usepackage{amsmath}
-\pgfplotsset{width=7cm,compat=1.9}
 \setlength{\oddsidemargin}{0.25 in}
 \setlength{\evensidemargin}{-0.25 in}
 \setlength{\topmargin}{-0.6 in}
@@ -23,6 +18,14 @@
 \setlength{\headsep}{0.75 in}
 \setlength{\parindent}{0 in}
 \setlength{\parskip}{0.1 in}
+\usepackage{graphics}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage{textcomp}
+\usepackage{semantic}
+\usepackage{cancel}
+\usetikzlibrary{decorations.markings}
+\usetikzlibrary{positioning, shapes, arrows}
 
 %
 % The following commands set up the lecnum (lecture number)
@@ -35,7 +38,6 @@
 \renewcommand{\theequation}{\thelecnum.\arabic{equation}}
 \renewcommand{\thefigure}{\thelecnum.\arabic{figure}}
 \renewcommand{\thetable}{\thelecnum.\arabic{table}}
-\newcommand{\longsquiggly}{\xymatrix@C=1.5em{{}\ar@{~>}[r]&{}}}
 
 %
 % The following macro is used to generate the header.
@@ -88,6 +90,12 @@
 			Figure \thelecnum.#1:~#3
 			\end{center}
 	}
+
+\newcommand{\mymk}[1]{%
+  \tikz[baseline=(char.base)]\node[anchor=south west, draw,rectangle, rounded corners, inner sep=2pt, minimum size=7mm,
+    text height=2mm](char){\ensuremath{#1}} ;}
+
+
 % Use these for theorems, lemmas, proofs, etc.
 \newtheorem{theorem}{Theorem}[lecnum]
 \newtheorem{lemma}[theorem]{Lemma}
@@ -102,7 +110,7 @@
 \begin{document}
 %FILL IN THE RIGHT INFO.
 %\lecture{**LECTURE-NUMBER**}{**DATE**}{**LECTURER**}{**SCRIBE**}
-\lecture{1}{September 5}{Dr.Vijay Garg}{Shailesh Kelkar and Daniel Cabrera}
+\lecture{1}{August 31}{Vijay Garg}{Asad Malik}
 %\footnotetext{These notes are partially based on those of Nigel Mansell.}
 
 % **** YOUR NOTES GO HERE:
@@ -111,174 +119,328 @@
 % macros follow.  
 %**** IN GENERAL, BE BRIEF. LONG SCRIBE NOTES, NO MATTER HOW WELL WRITTEN,
 %**** ARE NEVER READ BY ANYBODY.
-\section{Recap}
-Happened-before relation ($\rightarrow$) is the smallest relation such that
-\newline
-1. if ($e \prec f$) in the same process, then (e$\rightarrow$f) where $\prec$ is locally precedes.
-\newline
-2. if ($e \rightsquigarrow f$), then (e$\rightarrow$f) where $\rightsquigarrow$ is remotely precedes.
-\newline
-3. if ($\exists g: $($e \rightarrow g$) $\land$ ($g \rightarrow f$)), then (e$\rightarrow$f).
+\section*{Introduction}
+Students in EE 382N are required to scribe lecture notes for one lecture.
+These lecture notes will be done using the document processing system called Latex.
+There is a sample {\em scribe.tex} file on the Canvas system which can be used as a template. You can run {\tt pdflatex}
+on that file to generate {\em scribe.pdf}.
 
-Thus, 
-$\rightarrow$ : $(\prec \cup \rightsquigarrow)^+$ where + is transitive closure.
-\section{Topics}
-\begin{enumerate}
-\item Logical Clock
-\item Physical Clock
-\item Down-sets
-\item Principal Ideals
-\item Vector Clock
-\item Dilworth's Theorem
-\end{enumerate}
+During each class, the professor will list the topics to be covered on the whiteboard.
+Once a topic has been completed, he will check it off the list. That's the time to ask questions.
 
-\section{Logical Clock}
-\subsection{Definition}
-A map C:E $\rightarrow \mathbb{N}$ is a logical clock if 
-$\forall$ e,f $\in$ E: ($e \rightarrow f$) $\Rightarrow$ C(e) $<$ C(f).
-In short, C is the function that preserves the structure.
-\subsection{Logical Clock Algorithm}
-The variable c (integer) is initialized to 0.
-\newline
-1. For internal events, c++ (increment c by 1).
-\newline
-2. For send event, c++ and piggyback c with message.
-\newline
-3. For receive event of message having logical value d, c := max(c,d) + 1.
-\newline
-{\tt Note:C(e)$<$C(f) does not imply that e$\rightarrow$f}
-\newline
-Consider, C(e) = 5 and C(f) = 7, we can only conclude that f did not happen before e. Two possibilities exist : e happened before or concurrent with f.
+\textbf {Textbook}: Elements of Distributed Computing
 
-Sometimes, events need to have unique timestamps.In this case, (logical clock value, Process ID) becomes the timestamp. In case of a tie, event with smallest process id wins.
-Example
-\begin{center}
-\includegraphics[width=3.0 in]{LogicalClock}\\
-\end{center}
+The textbook will cover roughly 50\% of the course material. The rest will be covered by lectures and research papers.
+There will be 3 tests during the semester and \textbf {no} final exam. Test dates will be posted on canvas.
 
-\section{Physical Clock}
-\subsection{Terminology}
-Let G = (V,E) be undirected graph representing topology.
+\subsection*{Course Rules}
+\begin{itemize}
+  \item No cellphone or laptop use allowed during the lecture
+  \item Tablets are permitted for the sole purpose of taking lecture notes
+  \item Ask at least one question during the semester
+  \item Limit yourself to 5 questions during a lecture
+  \item No guns allowed in the office
+\end{itemize}
+
+\subsection*{Course Info}
+\begin{itemize}
+  \item Prof. Garg Office: EER 7.884
+  \item TA: Changyong Hu (colinhu9@gmail.com)
+  \item Assignments done in groups of 2
+  \item Term project done in teams of 3-4
+\end{itemize}
+
+\section*{Goals of the Course}
+
 \begin{center}
 \begin{tikzpicture}
-\begin{axis}[
-    axis lines = left,
-    xlabel = $t$,
-    ylabel = {$C(t)$},
-]
-%Below the red line is defined
-\addplot [
-    domain=0:10, 
-    samples=50, 
-    color=blue,
-]
-{x};
-\addlegendentry{ideal}
-%Here the blue line is defined
-\addplot [
-    domain=0:10, 
-    samples=50, 
-    color=red,
-    ]
-    {2*x};
-\addlegendentry{running fast}
-\addplot [
-    domain=0:10, 
-    samples=50, 
-    color=black,
-    ]
-    {0.5*x};
-\addlegendentry{running slow}
-\end{axis}
+\node (A) [cloud, draw,cloud puffs=10,cloud puff arc=120, aspect=2, inner ysep=1em] {Distributed Systems};
+\node (B)[draw,shape=rounded rectangle,  below left=of A,
+minimum width=1.8cm]  {Algorithms};
+\node (C)[draw,shape=rounded rectangle,  below right=of A,
+minimum width=1.8cm]  {Systems};
+\draw [->] (A) edge (B) (A) edge (C);
 \end{tikzpicture}
 \end{center}
 
-Drift rate = $| 1 - \frac{dc}{dt}| < \kappa$
-\newline
-\newline
-$\tau$ = Synchronization Period (Every $\tau$ units of time, send your clock value to all your neighboring nodes)
-\subsection{Lamport's Physical Clock Algorithm}
-1. Assume, every sent message takes time in [$\mu, \mu+\xi$] to reach destination.
-\newline
-2. On receiving a message timestamped with D, C:= max$(C, D+\mu)^+$ where + indicates that it is fractionally bigger (smallest level of granularity).
-Still, there exists uncertainty in synchronization($\epsilon$)
-\newline
-$|C_{i}(t) - C_{j}(t)| < \epsilon$  
-\newline
-Diameter of the graph(d) = $max_{i,j}$ (length of the shortest path from i to j)
-\newline
+Both \textbf{Algorithms} and \textbf{Systems} are an important part of this course. We will be covering the theory as well as putting it into practice
+so expect to work on complex programming assigments.
 
-$\boxed{\epsilon \approx d(2\kappa\tau + \xi)}$
-\newline
+The term project is a very important part of the course. The goal is to produce something new instead of working on already solved problems.
+The term project is loosely based on a conference style of submission with each team submitting a paper (7-8 pages) which will be reviewed by their peers. 
+Papers which are accepted by the reviewers will be presented at the end of the semester. The deadline for submission will be 2-3 weeks prior to the end of
+the semester (exact dates are TBD). You will be expected to study and work in groups as collaboration is a good way to learn the material.
 
-Advantage of physical clock is that is satisfies logic clock property. 
+\section*{Happened-before, Posets \& Lattices}
 
-\section{Down Sets}
-\subsection{Terminology}
-Let (X,$\leqslant$) be any poset. We call a subset Y $\subseteq$ X a down-set if:\\
-
-\centerline{(z $\in$ Y) $\land$ (y $\leqslant$ z)$\Rightarrow$ (y $\in$ Y).}
-
-Example 1\\
-\begin{center}
-\includegraphics[width=3.0 in]{Downset}\\
-\end{center}
-Y = \{ D \} is not a downset.\\
-Y = \{ C, A \} is a downset.\\
-Example 2\\
-\begin{center}
-\includegraphics[width=3.0 in]{Downset2}\\
-\end{center}
-D[\, E ]\, = \{ A, D, E \}
-
-\section{Principal Ideals}
-It refers to an ideal in a poset P generated by a single element x of P, which is to say the set of all elements less than or equal to x in P.
-
-\section{Vector clocks}
-When using vector clocks, the time domain is represented by a set of n-dimensional non-negative integer vector. A process Pi maintains a vector $VT_{i}$[\,1...n]\, where $VT_{i}$[\,i]\, is the local logical clock of Pi and describes the logical time progress at the process Pi.\\
-
-Process Pi uses the following two rules R1 and R2 to update its clock:
+\textbf {Source}: Lamport's paper '78 \textit Time, Clocks, and the Ordering of Events in a Distributed System
 
 
-\begin{itemize}
-\item R1: Before executing an event, process Pi, updates its local logical time:\\
-\centerline{$VT_{i}$[\,i]\, = $VT_{i}$[\,i ]\, + d where d  $>$ 0}\\
-\item R2: Each message m is piggybacked with the vector VT of the sender process at sending time. On the receipt of such a message (m,vt), process Pi executes the following actions:
+\textbf {Definition} of Distributed Systems. 
+There are 3 assumptions associated with what a distributed system is:
 \begin{enumerate}
-\item Update its global logical time as follows:\\
-\centerline{1 $\leq$ K $\leq$ n : $VT_{i}$[\,i]\, := max($VT_{i}$[\,k]\,, VT[\,k]\,) }
-\item Execute R1
-\item Deliver the message m
+  \item No shared clocks
+  \item No shared memory
+  \item Asynchronous
+\end{enumerate}
 
+\begin{center}
+\begin{tikzpicture}
+\node (A) [cloud, draw,cloud puffs=10,cloud puff arc=120, aspect=2, inner ysep=1em] {Network};
+\node (B)[draw,shape=rounded rectangle,  below left=of A,
+minimum width=1.8cm]  {P1};
+\node (C)[draw,shape=rounded rectangle,  below right=of A,
+minimum width=1.8cm]  {P2};
+\draw [-] (A) edge (B) (A) edge (C);
+\end{tikzpicture}
+\dots
+\end{center}
+
+The only way for communication is through messages which may take an unbounded amount of time.
+There is no way to synchronize the clocks due to uncertainity of how long messages might take.
+
+Lamport's paper discusses how to order events with asynchronous clocks.
+
+Defining happened-before \textbf{(\textrightarrow)} without using clocks:
+
+If we say e \textbf{\textrightarrow} f, we much be 100\% certain of the fact.
+Rules for \textbf{\textrightarrow} relations.  \textbf{\textrightarrow} is the smallest relation such that:
+\begin{itemize}
+	\item if e occured before f in the same process, then e \textbf{\textrightarrow} f
+	\item if e is send of a message and f is the receive of that message, then e  \textbf{\textrightarrow} f
+	\item if $\exists$ g: e  \textbf{\textrightarrow} g $\land$ g  \textbf{\textrightarrow} f, then e  \textbf{\textrightarrow} f
+\end{itemize}
+
+\textbf{Example:}
+
+\tikzset{->-/.style={decoration={
+  markings,
+  mark=at position #1 with {\arrow{>}}},postaction={decorate}}}
+
+\begin{tikzpicture}
+% a straight line segment
+\draw[-latex] (-2,0) -- (2,0);
+% the ticks and their labels
+ \draw[xshift=-1.75 cm] (0pt,2pt) -- (0pt,-1pt) node[below,fill=white] (e1) {e1};
+ \draw[xshift= 0 cm] (0pt,2pt) -- (0pt,-1pt) node[below,fill=white] (e2) {e2};
+ \draw[xshift=1.5 cm] (0pt,2pt) -- (0pt,-1pt) node[below,fill=white] (e3) {e3};
+
+
+% a straight line segment
+\draw[-latex] (-2,-2) -- (2,-2);
+% the ticks and their labels
+ \draw[xshift=-1.75 cm, yshift=-2 cm] (0pt,2pt) -- (0pt,-1pt) node[below,fill=white] (f1) {f1};
+ \draw[xshift= 0 cm, yshift=-2 cm] (0pt,2pt) -- (0pt,-1pt) node[below,fill=white] (f2) {f2};
+ \draw[xshift=1.5 cm, yshift=-2 cm] (0pt,2pt) -- (0pt,-1pt) node[below,fill=white] (f3) {f3};
+
+\draw [blue, solid, ->] (0,0) -- (1.5,-2);
+\end{tikzpicture}
+
+From the example, we can infer the following:
+\begin{enumerate}
+  \item  e1 \textbf{\textrightarrow} e2,  e2 \textbf{\textrightarrow} e3, hence  e1 \textbf{\textrightarrow} e3
+  \item  f1 \textbf{\textrightarrow} f2, f2 \textbf{\textrightarrow} f3, hence f1 \textbf{\textrightarrow} f3
+  \item  e2 \textbf{\textrightarrow} f3 (message sent at e2 received at f3) hence e1 \textbf{\textrightarrow} f3
+\end{enumerate}
+
+\textbf{Concurrent Events:} e $||$ f $ \implies $ (e  \cancel{\textrightarrow} f) $\land$ (f \cancel{\textrightarrow} e)
+
+\textrightarrow is transitive. \\
+\textrightarrow is irreflexive; no event can happen before itself just like $<$ "less than" relationship. \\
+\textrightarrow defines relationships in the irreflexive partially ordered set.
+
+Examples of \textbf{irreflexive asymmetric}
+\begin{itemize}
+	\item (E, \textrightarrow)
+	\item (N, $<$)
+\end{itemize}
+where: \\
+E is the set of all relationships defined by \textrightarrow relationship \\
+N is the set of all natural numbers defined by $<$ relationship
+
+
+Examples of \textbf{reflexive antisymmetric}
+\begin{itemize}
+	\item (E, \underline{\textrightarrow})
+	\item (N, $\leq$)
+\end{itemize}
+where: \\
+E is the set of all relationships defined by \underline{\textrightarrow}relationship \\
+N is the set of all natural numbers defined by $\leq$ relationship
+
+(e  \underline{\textrightarrow} f) $\land$ (f  \underline{\textrightarrow} e) $\implies$ e = f
+
+
+\subsection*{Posets}
+
+\underline {Hasse Diagram} transitively reduced diagram 
+
+
+\begin{tikzpicture}[scale=.7]
+  \node (c) at (-2,2) {$c$};
+  \node (e) at (2,2) {$e$};
+  \node (b) at (-2,0) {$b$};
+  \node (d) at (2,0) {$d$};
+  \node (a) at (0,-2) {$a$};
+  \draw (a) -- (b) -- (c) -- (b) -- (a) -- (d) -- (e) -- (d);
+\end{tikzpicture}
+
+a $<$ b, a $<$ c \\
+a $<$ d, a $<$ e \\
+b $<$ c, d $<$ e \\
+ 
+\textbf{Chain:} Y is a chain in X if \\ $\forall$ a,b $\in$ Y: (a $\leq$ b) $\lor$ (b $\leq$ a) \\
+\textbf{Example:} Longest chains are (a,b,c) and (a,d,e). [Length is 3] \\
+
+\textbf{Anti-Chain:} Y is an anti-chain in X if \\ $\forall$ a,b $\in$ Y: (a $||$ b) \\
+\textbf{Example:} Longest anti-chains are (b,d), (c,e), (c,d), (b,d). [Width is 2]
+
+\textbf{Note:}
+\begin{enumerate}
+\item Height of poset is the longest chain
+\item Width of poset is longest anti-chain
 \end{enumerate}
 
 
 
-
-\end{itemize}
-\newpage
-Example
 \begin{center}
-\includegraphics[width=3.0 in]{VectorClocks}\\
-\end{center}
+\textbf{Some More Examples}
+\end{center} 
+Relation (N, divides). a $\leq$ b if a divides b, i.e b \% a = 0
 
-\section{Dilworth's Theorem(1950's)}
-\subsection{Theorem}
-Any poset can be decomposed into w chains where w is the width of the poset. This is necessary and sufficient condition.
-\subsection{Proof}
-The basic idea is that when new element x comes up, we have to show that we can add it to one of the existing w chains.
-\newline
-\tt(To be continued...) 
+\begin{tikzpicture}[scale=.7]
+  \node (six) at (0,2) {$6$};
+  \node (five) at (4,0) {$5$};
+  \node (four) at (-2,2) {$4$};
+  \node (three) at (2,0) {$3$};
+  \node (two) at (-2,0) {$2$};
+  \node (one) at (0,-2) {$1$};
+  \draw (one) -- (two) -- (four);
+  \draw (one) -- (five);
+  \draw (one) -- (three) -- (six);
+  \draw (two) -- (six);
+\end{tikzpicture}
 
-\section*{References}
-\beginrefs
-\bibentry{ACM78}{\sc Leslie, Lamport},
-Time, clocks, and the ordering of events in a distributed system,
-{\it Communications of the ACM\/}~{\bf 21} (1978),
-pp.~558--565.
-\bibentry{Cambridge}{\sc Kshemkalyani, Ajay},
-Distributed Computing: Principals, algorithms, and systems (2008)
-\endrefs
+
+Set Y = {a, b}
+Subsets of Y:
+\begin{tikzpicture}[scale=.7]
+  \node (ab) at (0,2) {$\{a, b\}$};
+  \node (empty) at (0,-2) {$\{\}$};
+  \node (b) at (2,0) {$\{b\}$};
+  \node (a) at (-2,0) {$\{a\}$};
+  \draw (empty) -- (a) -- (ab);
+  \draw (empty) -- (b) -- (ab);
+\end{tikzpicture}
+
+
+\subsection*{Infimum and Supremum}
+
+\textbf{Infimum} \\ 
+Given (X, $\leq$) \& Y $\subseteq$ X
+
+m $\in$ X is the meet/infimum/"greatest lower bound" of Y if
+\begin{enumerate}
+	\item $\forall$ y $\in$ Y: m $\leq$ y \{m is a lower bound\}
+	\item $\forall$ m' : [$\forall$ y $\in$ Y: m' $\leq$ y] $\implies$ m' $\leq$ m
+\end{enumerate}
+
+
+
+\begin{tikzpicture}[scale=.7]
+  \node (c) at (-2,2) {$c$};
+  \node (e) at (2,2) {$e$};
+  \node (b) at (-2,0) {$b$};
+  \node (d) at (2,0) {$d$};
+  \node (a) at (0,-2) {$a$};
+ \node (q) at (0,-3.5) {$q$};
+ \node (r) at (0,-5) {$r$};
+  \draw (r) -- (q) -- (a) -- (b) -- (c) -- (b) -- (a) -- (d) -- (e) -- (d);
+\end{tikzpicture}
+
+\textbf {inf} (b,e) = a = b  \textbf{$\sqcap$} e \\
+\textbf {inf} is represented by the symbol ($\sqcap$)
+
+\textbf{Supremum} \\
+Supremum is the least upper bound and is represented by the symbol (\textbf{$\sqcup$}). For the example above, the sup(b,e) or b $\sqcup$ e does not exist.
+
+A poset (X, $\leq$) is a lattice if for all \underline{finite} Y $\subseteq$ X, sup(Y) and inf(Y) exist.
+
+
+\begin{tikzpicture}[scale=.7]
+  \node (f) at (0, 4) {$f$};
+  \node (c) at (-2,2) {$c$};
+  \node (e) at (2,2) {$e$};
+  \node (b) at (-2,0) {$b$};
+  \node (d) at (2,0) {$d$};
+  \node (a) at (0,-2) {$a$};
+ \node (q) at (0,-3.5) {$q$};
+ \node (r) at (0,-5) {$r$};
+  \draw (r) -- (q) -- (a) -- (b) -- (c) -- (b) -- (a) -- (d) -- (e) -- (d);
+  \draw (c) -- (f) -- (e);
+\end{tikzpicture}
+
+The example above is a lattice as for all subsets, \textbf{sup} and \textbf{inf} exist. \\
+b $\sqcup$ e = f \\
+b $\sqcap$ e = a
+
+
+\begin{tikzpicture}[scale=.7]
+  \node (f) at (0, 4) {$f$};
+  \node (d) at (-2,2) {$d$};
+  \node (e) at (2,2) {$e$};
+  \node (b) at (-2,0) {$b$};
+  \node (c) at (2,0) {$c$};
+  \node (a) at (0,-2) {$a$};
+  \draw (a) -- (b) -- (d) -- (f) -- (e) -- (c) -- (a);
+ \draw (b) -- (e);
+  \draw (c) -- (d);
+\end{tikzpicture}
+
+The example above is \textbf{NOT} a lattice. \\
+b $\sqcup$ c = does not exist \\
+b $\sqcap$ c = a
+
+For (N, divides) poset, GCD = inf and LCM = sup.
+
+
+\textbf {Distributive Property}:
+\begin{enumerate}
+\item a  $\sqcap$ ( b $\sqcup$ c) = (a $\sqcap$ b) $\sqcup$ (a $\sqcap$ c) 
+\item a  $\sqcup$ ( b $\sqcap$ c) = (a $\sqcup$ b) $\sqcap$ (a $\sqcup$ c) 
+\end{enumerate}
+
+
+\textbf {Pentagon Lattice}
+
+\begin{tikzpicture}[scale=.7]
+  \node (f) at (0, 4) {$f$};
+  \node (d) at (-2,2) {$d$};
+  \node (e) at (2,2) {$e$};
+  \node (c) at (2,0) {$c$};
+  \node (a) at (0,-2) {$a$};
+  \draw (a) -- (d) -- (f) -- (e) -- (c) -- (a);
+\end{tikzpicture}
+
+
+The lattice above is not distributive.
+
+\textbf {Diamond Lattice}
+
+\begin{tikzpicture}[scale=.7]
+  \node (e) at (0, 4) {$e$};
+  \node (d) at (2,2) {$d$};
+  \node (b) at (-2,2) {$b$};
+  \node (c) at (0,2) {$c$};
+  \node (a) at (0,-2) {$a$};
+  \draw (a) -- (d) -- (e) -- (c) -- (a) -- (b) -- (e);
+\end{tikzpicture}
+
+
+
 \end{document}
+
+
+
 
 
